@@ -82,8 +82,6 @@ int main(int argc, char** argv) try
 
 
     for (int i = 1; i <= 2; i++) {
-        
-
         matrix<rgb_pixel> img;
         load_image(img, argv[i]);
         auto face = detector(img)[0];
