@@ -136,6 +136,7 @@ int main(int argc, char** argv) try
 
     cout << argv[1] << " 파일의 피부 트러블 수치 : " << score[0] << endl;
     cout << argv[2] << " 파일의 피부 트러블 수치 : " << score[1] << endl;
+    system("pause > nul");
 }
 catch (std::exception& e)
 {
