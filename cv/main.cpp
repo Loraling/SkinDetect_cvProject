@@ -76,6 +76,7 @@ int main(int argc, char** argv) try
     if (argc != 3)
     {
         cout << "두 개의 파일을 인자로 넣어야 합니다." << endl;
+        system("pause > nul");
         return 1;
     }
 
@@ -117,7 +118,7 @@ int main(int argc, char** argv) try
         bitwise_and(face_image, skin_mask, skin);
 
         resize(skin, skin, Size(480, 480));
-        //imshow("skin_mask", skin);
+        imshow("skin_mask", skin);
 
         // 여드름 검출 후 수치화
         Mat acne_mask = acne_detect(skin);
@@ -139,11 +140,12 @@ int main(int argc, char** argv) try
 catch (std::exception& e)
 {
     cout << e.what() << endl;
+    system("pause > nul");
 }
 
 Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) {
     shape_predictor sp;
-    deserialize("shape_predictor_68_face_landmarks.dat") >> sp;
+    deserialize("./shape_predictor_68_face_landmarks.dat") >> sp;
 
     std::vector<cv::Point> left_eyebrows, right_eyebrows, nose, left_eye, right_eye, lip;
 
@@ -169,8 +171,8 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
         nose.push_back(p);
     }
     // 특정 얼굴 요소를 완전히 가리기 위해 좌표값 수정
-    nose[1].x -= (2 * nose[1].x - nose[3].x > 0) ? nose[3].x - nose[1].x : 0;
-    nose[5].x += (2 * nose[5].x - nose[3].x < face.width()) ? nose[5].x - nose[3].x : 0;
+    nose[1].x -= (2 * nose[1].x - nose[3].x > 0) ? (nose[3].x - nose[1].x) / 2 : 0;
+    nose[5].x += (2 * nose[5].x - nose[3].x < face.width()) ? (nose[5].x - nose[3].x) / 2 : 0;
 
     for (int i = 36; i <= 41; i++) { // (사진 상) 왼쪽 눈
         Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
@@ -198,8 +200,12 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
         Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
         lip.push_back(p);
     }
-    lip[0].x -= (2 * lip[0].x - lip[1].x > 0) ? (lip[1].x - lip[0].x) / 2 : 0;
-    lip[6].x += (2 * lip[6].x - lip[5].x < face.width()) ? (lip[6].x - lip[5].x) / 2 : 0;
+    int y_add = (lip[9].y - lip[3].y) / 5;
+    lip[0].x -= (2 * lip[0].x - lip[1].x > 0) ? (lip[1].x - lip[0].x) / 3 : 0;
+    lip[6].x += (2 * lip[6].x - lip[5].x < face.width()) ? (lip[6].x - lip[5].x) / 3 : 0;
+    for (int i = 1; i <= 5; i++) lip[i].y -= (lip[i].y - y_add > 0) ? y_add : 0;
+    for (int i = 7; i <= 11; i++) lip[i].y += (lip[i].y + y_add < face.height()) ? y_add : 0;
+
 
     // 얼굴의 눈썹, 눈, 코, 입을 가리는 영상 생성
     Mat skin_mask(Size(face.width(), face.height()), CV_8UC1, Scalar(255, 255, 255));
@@ -212,12 +218,12 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
     fillPoly(skin_mask, lip, Scalar(0, 0, 0));
 
     // 조금 더 두꺼운 외곽선으로 얼굴 요소들 주변의 명암이 짙은 영역 커버
-    polylines(skin_mask, left_eyebrows, 1, Scalar(0, 0, 0), 5);
-    polylines(skin_mask, right_eyebrows, 1, Scalar(0, 0, 0), 5);
-    polylines(skin_mask, nose, 1, Scalar(0, 0, 0), 5);
-    polylines(skin_mask, left_eye, 1, Scalar(0, 0, 0), 5);
-    polylines(skin_mask, right_eye, 1, Scalar(0, 0, 0), 5);
-    polylines(skin_mask, lip, 1, Scalar(0, 0, 0), 5);
+    polylines(skin_mask, left_eyebrows, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
+    polylines(skin_mask, right_eyebrows, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
+    polylines(skin_mask, nose, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
+    polylines(skin_mask, left_eye, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
+    polylines(skin_mask, right_eye, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
+    polylines(skin_mask, lip, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
 
     return skin_mask;
 }
@@ -290,7 +296,7 @@ Mat acne_detect(Mat skin_arg) {
     max_a -= 128;
 
     Mat skin_ac(skin_lab.size(), CV_8UC1);
-    double threshold = 0.5; // 임계치는 임의로 설정. 향후 임계값 결정 알고리즘 등으로 개선 가능
+    double threshold = 0.8; // 임계치는 임의로 설정. 향후 임계값 결정 알고리즘 등으로 개선 가능
     for (int i = 0; i < channels[1].rows; i++) {
         for (int j = 0; j < channels[1].cols; j++) {
             uchar pixel = channels[1].at<uchar>(i, j);
