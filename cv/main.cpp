@@ -1,4 +1,5 @@
 #define DLIB_JPEG_SUPPORT
+#define DLIB_PNG_SUPPORT
 
 #include <dlib/opencv.h>
 #include <opencv2/opencv.hpp>
@@ -79,6 +80,7 @@ int main(int argc, char** argv) try
     anet_type net;
     deserialize("dlib_face_recognition_resnet_model_v1.dat") >> net;
 
+    std::vector<int> score;
 
 
     for (int i = 1; i <= 2; i++) {
@@ -91,33 +93,70 @@ int main(int argc, char** argv) try
         extract_image_chip(img, get_face_chip_details(shape, 150, 0.1), face_chip);
 
 
-        std::vector<cv::Point> left_eyebrows, right_eyebrows, left_eye, right_eye, lip;
+        std::vector<cv::Point> left_eyebrows, right_eyebrows, nose, left_eye, right_eye, lip;
         shape = sp2(img, face);
 
         for (int i = 17; i <= 21; i++) { // (»çÁø »ó) ¿ÞÂÊ ´«½ç
             Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
             left_eyebrows.push_back(p);
         }
+
         for (int i = 22; i <= 26; i++) { // (»çÁø »ó) ¿À¸¥ÂÊ ´«½ç
             Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
             right_eyebrows.push_back(p);
         }
+
+        for (int i = 31; i <= 35; i++) { // ÄÚ
+            if (i == 31) {
+                Point n = Point(shape.part(27).x() - face.left(), shape.part(27).y() - face.top());
+                nose.push_back(n);
+            }
+            Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
+            nose.push_back(p);
+        }
+        nose[1].x -= (2 * nose[1].x - nose[3].x > 0) ? nose[3].x - nose[1].x : 0;
+        nose[5].x += (2 * nose[5].x - nose[3].x < face.width()) ? nose[5].x - nose[3].x : 0;
+
         for (int i = 36; i <= 41; i++) { // (»çÁø »ó) ¿ÞÂÊ ´«
             Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
             left_eye.push_back(p);
         }
+        left_eye[0].x -= (2 * left_eye[0].x - left_eye[1].x > 0) ? left_eye[1].x - left_eye[0].x : 0;
+        left_eye[3].x += (2 * left_eye[3].x - left_eye[2].x < face.width()) ? left_eye[3].x - left_eye[2].x : 0;
+        left_eye[1].y -= (2 * left_eye[1].y - left_eye[5].y > 0) ? left_eye[5].y - left_eye[1].y : 0;
+        left_eye[5].y += (2 * left_eye[5].y - left_eye[1].y < face.height()) ? left_eye[5].y - left_eye[1].y : 0;
+        left_eye[2].y -= (2 * left_eye[2].y - left_eye[4].y > 0) ? left_eye[4].y - left_eye[2].y : 0;
+        left_eye[4].y += (2 * left_eye[4].y - left_eye[2].y < face.height()) ? left_eye[4].y - left_eye[2].y : 0;
+
         for (int i = 42; i <= 47; i++) { // (»çÁø »ó) ¿À¸¥ÂÊ ´«
             Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
             right_eye.push_back(p);
         }
-        for (int i = 49; i <= 60; i++) { // ÀÔ¼ú
+        right_eye[0].x -= (2 * right_eye[0].x - right_eye[1].x > 0) ? right_eye[1].x - right_eye[0].x : 0;
+        right_eye[3].x += (2 * right_eye[3].x - right_eye[2].x < face.width()) ? right_eye[3].x - right_eye[2].x : 0;
+        right_eye[1].y -= (2 * right_eye[1].y - right_eye[5].y > 0) ? right_eye[5].y - right_eye[1].y : 0;
+        right_eye[5].y += (2 * right_eye[5].y - right_eye[1].y < face.height()) ? right_eye[5].y - right_eye[1].y : 0;
+        right_eye[2].y -= (2 * right_eye[2].y - right_eye[4].y > 0) ? right_eye[4].y - right_eye[2].y : 0;
+        right_eye[4].y += (2 * right_eye[4].y - right_eye[2].y < face.height()) ? right_eye[4].y - right_eye[2].y : 0;
+
+        for (int i = 48; i <= 59; i++) { // ÀÔ¼ú
             Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
             lip.push_back(p);
         }
+        lip[0].x -= (2 * lip[0].x - lip[1].x > 0) ? (lip[1].x - lip[0].x) / 2 : 0;
+        lip[6].x += (2 * lip[6].x - lip[5].x < face.width()) ? (lip[6].x - lip[5].x) / 2 : 0;
 
         Mat original_image, face_image, ycrcb_image, hsv_image, skin_msk, skin;
         Rect face_rect(face.left(), face.top(), face.width(), face.height());
         original_image = imread(argv[i], IMREAD_COLOR);
+
+        if (face_rect.x < 0) face_rect.x = 0;
+        else if (face_rect.x > original_image.cols) face_rect.x = original_image.cols - 1;
+        if (face_rect.y < 0) face_rect.y = 0;
+        else if (face_rect.x > original_image.rows) face_rect.y = original_image.rows - 1;
+        if (face_rect.x + face_rect.width > original_image.cols) face_rect.width = 1;
+        if (face_rect.y + face_rect.height > original_image.rows) face_rect.height = 1;
+
         face_image = original_image(face_rect);
 
         cvtColor(face_image, ycrcb_image, COLOR_BGR2YCrCb);
@@ -125,16 +164,87 @@ int main(int argc, char** argv) try
 
         fillPoly(skin_msk, left_eyebrows, Scalar(0, 0, 0));
         fillPoly(skin_msk, right_eyebrows, Scalar(0, 0, 0));
+        fillPoly(skin_msk, nose, Scalar(0, 0, 0));
         fillPoly(skin_msk, left_eye, Scalar(0, 0, 0));
         fillPoly(skin_msk, right_eye, Scalar(0, 0, 0));
         fillPoly(skin_msk, lip, Scalar(0, 0, 0));
 
+        polylines(skin_msk, left_eyebrows, 1, Scalar(0, 0, 0), 5);
+        polylines(skin_msk, right_eyebrows, 1, Scalar(0, 0, 0), 5);
+        polylines(skin_msk, nose, 1, Scalar(0, 0, 0), 5);
+        polylines(skin_msk, left_eye, 1, Scalar(0, 0, 0), 5);
+        polylines(skin_msk, right_eye, 1, Scalar(0, 0, 0), 5);
+        polylines(skin_msk, lip, 1, Scalar(0, 0, 0), 5);
+
         erode(skin_msk, skin_msk, Mat::ones(Size(3, 3), CV_8UC1));
 
         bitwise_and(face_image, face_image, skin, skin_msk);
+        resize(skin, skin, Size(480, 480));
 
-        imshow("face", face_image);
-        imshow("y skin", skin);
+        std::vector<int> b, g, r;
+        
+        for (int i = 0; i < skin.rows; i++) {
+            for (int j = 0; j < skin.cols; j++) {
+                Vec3b& pixel = skin.at<Vec3b>(i, j);
+                if (pixel[0] != 0 && pixel[1] != 0 && pixel[2] != 0) {
+                    b.push_back(pixel[0]);
+                    g.push_back(pixel[1]);
+                    r.push_back(pixel[2]);
+                }
+            }
+        }
+
+        double b_avg = 0.0, g_avg = 0.0, r_avg = 0.0;
+        for (int i = 0; i < b.size(); i++) {
+            b_avg += b[i];
+            g_avg += g[i];
+            r_avg += r[i];
+        }
+        b_avg /= b.size(); g_avg /= g.size(); r_avg /= r.size();
+        double b_mV = 1 / b_avg, g_mV = 1 / g_avg, r_mV = 1 / r_avg;
+        double max_mV = max(b_mV, max(g_mV, r_mV));
+
+        double b_scaled = b_mV / max_mV, g_scaled = g_mV / max_mV, r_scaled = r_mV / max_mV;
+
+        for (int i = 0; i < skin.rows; i++) {
+            for (int j = 0; j < skin.cols; j++) {
+                Vec3b& pixel = skin.at<Vec3b>(i, j);
+                if (pixel[0] != 0 && pixel[1] != 0 && pixel[2] != 0) {
+                    pixel[0] = pixel[0] * b_scaled;
+                    pixel[1] = pixel[1] * g_scaled;
+                    pixel[2] = pixel[2] * r_scaled;
+                }
+            }
+        }
+
+        Mat skin_lab;
+        cvtColor(skin, skin_lab, COLOR_BGR2Lab);
+        std::vector<Mat> channels(3);
+        split(skin_lab, channels);
+        Mat skin_ac(skin_lab.size(), CV_8UC1);
+
+        double min_a, max_a;
+        minMaxLoc(channels[1], &min_a, &max_a);
+        max_a -= 128;
+
+        for (int i = 0; i < channels[1].rows; i++) {
+            for (int j = 0; j < channels[1].cols; j++) {
+                uchar pixel = channels[1].at<uchar>(i, j);
+                //cout << (double)pixel - 128 << endl;
+                if (((double)pixel - 128) / max_a > 0.5) skin_ac.at<uchar>(i, j) = 255;
+                else skin_ac.at<uchar>(i, j) = 0;
+            }
+        }
+
+        score.push_back(countNonZero(skin_ac));
+
+        resize(face_image, face_image, Size(480, 480));
+
+        Mat skin_ac_weight = skin_ac.clone(), face_result=face_image.clone();
+        cvtColor(skin_ac, skin_ac_weight, COLOR_GRAY2BGR);
+        addWeighted(face_image, 0.5, skin_ac_weight, 0.5, 0.0, face_result);
+        imshow("face_image", face_result);
+        imshow("skin_AC", skin_ac);
 
         waitKey(0);
 
