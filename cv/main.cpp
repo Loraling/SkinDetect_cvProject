@@ -116,16 +116,14 @@ int main(int argc, char** argv) try
         cvtColor(skin_mask, skin_mask, COLOR_GRAY2BGR);
         bitwise_and(face_image, skin_mask, skin);
 
-        // 출력 테스트
-        /*
         resize(skin, skin, Size(480, 480));
-        resize(face_image, face_image, Size(480, 480));
-        imshow("skin_mask", skin);*/
+        //imshow("skin_mask", skin);
 
         // 여드름 검출 후 수치화
         Mat acne_mask = acne_detect(skin);
         score.push_back(countNonZero(acne_mask));
 
+        resize(face_image, face_image, Size(480, 480));
         Mat acne_weight = acne_mask.clone(), face_result=face_image.clone();
         cvtColor(acne_mask, acne_weight, COLOR_GRAY2BGR);
         addWeighted(face_image, 0.5, acne_weight, 0.5, 0.0, face_result);
