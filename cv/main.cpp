@@ -61,13 +61,13 @@ using anet_type = loss_metric<fc_no_bias<128, avg_pool_everything<
 
 // ----------------------------------------------------------------------------------------
 
-// ¾ó±¼ ¿µ»ó¿¡¼­ ´«½ç, ´«, ÄÚ, ÀÔ À§Ä¡ °ËÃâ
+// ì–¼êµ´ ì˜ìƒì—ì„œ ëˆˆì¹, ëˆˆ, ì½”, ì… ìœ„ì¹˜ ê²€ì¶œ
 Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face);
 
-// ¾ó±¼ ¿µ»ó¿¡¼­ »ö»ó ¼Ó¼º °Ë»ç¸¦ ÅëÇØ ÇÇºÎ ¿µ¿ª °ËÃâ
+// ì–¼êµ´ ì˜ìƒì—ì„œ ìƒ‰ìƒ ì†ì„± ê²€ì‚¬ë¥¼ í†µí•´ í”¼ë¶€ ì˜ì—­ ê²€ì¶œ
 Mat make_skin_mask(Mat img, Rect face);
 
-// ÇÇºÎ ¿µ»ó¿¡¼­ ¿©µå¸§ ¼öÄ¡ ÆÄ¾Ç
+// í”¼ë¶€ ì˜ìƒì—ì„œ ì—¬ë“œë¦„ ìˆ˜ì¹˜ íŒŒì•…
 Mat acne_detect(Mat skin_arg);
 
 
@@ -75,7 +75,7 @@ int main(int argc, char** argv) try
 {
     if (argc != 3)
     {
-        cout << "µÎ °³ÀÇ ÆÄÀÏÀ» ÀÎÀÚ·Î ³Ö¾î¾ß ÇÕ´Ï´Ù." << endl;
+        cout << "ë‘ ê°œì˜ íŒŒì¼ì„ ì¸ìë¡œ ë„£ì–´ì•¼ í•©ë‹ˆë‹¤." << endl;
         system("pause > nul");
         return 1;
     }
@@ -90,7 +90,7 @@ int main(int argc, char** argv) try
         load_image(img, argv[i]);
         auto face = detector(img)[0];
 
-        // ¾ó±¼ ROI ¿µ¿ªÀÌ ÂüÁ¶ ºÒ°¡´ÉÇÑ °æ¿ì ¼Ó¼ºÄ¡ ¼öÁ¤
+        // ì–¼êµ´ ROI ì˜ì—­ì´ ì°¸ì¡° ë¶ˆê°€ëŠ¥í•œ ê²½ìš° ì†ì„±ì¹˜ ìˆ˜ì •
         if (face.left() < 0) face.set_left(0);
         else if (face.left() > img.nc()) face.set_left(img.nc() - 1);
         if (face.top() < 0) face.set_top(0);
@@ -99,15 +99,16 @@ int main(int argc, char** argv) try
         if (face.top() + face.height() > img.nr()) face.set_bottom(img.nr() - 1);
 
 
-        // dlib ¹ÙÅÁÀÇ ÀÚ·áÇüÀ» OpenCV ÀÚ·áÇüÀ¸·Î ÀüÈ¯
+        // dlib ë°”íƒ•ì˜ ìë£Œí˜•ì„ OpenCV ìë£Œí˜•ìœ¼ë¡œ ì „í™˜
         Rect face_rect(face.left(), face.top(), face.width(), face.height());
         Mat original_image = imread(argv[i], IMREAD_COLOR);
 
 
-        // ¾ó±¼ ¿µ»ó¿¡¼­ ÇÇºÎ ÃßÃâ
+        // ì–¼êµ´ ì˜ìƒì—ì„œ í”¼ë¶€ ì¶”ì¶œ
         Mat face_mask = make_face_mask(img, face);
         Mat skin_mask = make_skin_mask(original_image, face_rect);
         bitwise_and(skin_mask, face_mask, skin_mask);
+        dilate(skin_mask, skin_mask, Mat::ones(Size(3, 3), CV_8UC1));
         erode(skin_mask, skin_mask, Mat::ones(Size(3, 3), CV_8UC1));
 
         Mat face_image = original_image(face_rect);
@@ -120,12 +121,12 @@ int main(int argc, char** argv) try
         resize(skin, skin, Size(480, 480));
         imshow("skin_mask", skin);
 
-        // ¿©µå¸§ °ËÃâ ÈÄ ¼öÄ¡È­
+        // ì—¬ë“œë¦„ ê²€ì¶œ í›„ ìˆ˜ì¹˜í™”
         Mat acne_mask = acne_detect(skin);
         score.push_back(countNonZero(acne_mask));
 
         resize(face_image, face_image, Size(480, 480));
-        Mat acne_weight = acne_mask.clone(), face_result=face_image.clone();
+        Mat acne_weight = acne_mask.clone(), face_result = face_image.clone();
         cvtColor(acne_mask, acne_weight, COLOR_GRAY2BGR);
         addWeighted(face_image, 0.5, acne_weight, 0.5, 0.0, face_result);
         imshow("face_result", face_result);
@@ -134,8 +135,8 @@ int main(int argc, char** argv) try
         destroyAllWindows();
     }
 
-    cout << argv[1] << " ÆÄÀÏÀÇ ÇÇºÎ Æ®·¯ºí ¼öÄ¡ : " << score[0] << endl;
-    cout << argv[2] << " ÆÄÀÏÀÇ ÇÇºÎ Æ®·¯ºí ¼öÄ¡ : " << score[1] << endl;
+    cout << argv[1] << " íŒŒì¼ì˜ í”¼ë¶€ íŠ¸ëŸ¬ë¸” ìˆ˜ì¹˜ : " << score[0] << endl;
+    cout << argv[2] << " íŒŒì¼ì˜ í”¼ë¶€ íŠ¸ëŸ¬ë¸” ìˆ˜ì¹˜ : " << score[1] << endl;
     system("pause > nul");
 }
 catch (std::exception& e)
@@ -150,20 +151,20 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
 
     std::vector<cv::Point> left_eyebrows, right_eyebrows, nose, left_eye, right_eye, lip;
 
-    // »çÀü¿¡ »ı¼ºµÈ ¸ğµ¨À» ÅëÇØ ¾ó±¼ ·£µå¸¶Å·
+    // ì‚¬ì „ì— ìƒì„±ëœ ëª¨ë¸ì„ í†µí•´ ì–¼êµ´ ëœë“œë§ˆí‚¹
     auto shape = sp(img, face);
 
-    for (int i = 17; i <= 21; i++) { // (»çÁø »ó) ¿ŞÂÊ ´«½ç
+    for (int i = 17; i <= 21; i++) { // (ì‚¬ì§„ ìƒ) ì™¼ìª½ ëˆˆì¹
         Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
         left_eyebrows.push_back(p);
     }
 
-    for (int i = 22; i <= 26; i++) { // (»çÁø »ó) ¿À¸¥ÂÊ ´«½ç
+    for (int i = 22; i <= 26; i++) { // (ì‚¬ì§„ ìƒ) ì˜¤ë¥¸ìª½ ëˆˆì¹
         Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
         right_eyebrows.push_back(p);
     }
 
-    for (int i = 31; i <= 35; i++) { // ÄÚ
+    for (int i = 31; i <= 35; i++) { // ì½”
         if (i == 31) {
             Point n = Point(shape.part(27).x() - face.left(), shape.part(27).y() - face.top());
             nose.push_back(n);
@@ -171,11 +172,11 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
         Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
         nose.push_back(p);
     }
-    // Æ¯Á¤ ¾ó±¼ ¿ä¼Ò¸¦ ¿ÏÀüÈ÷ °¡¸®±â À§ÇØ ÁÂÇ¥°ª ¼öÁ¤
+    // íŠ¹ì • ì–¼êµ´ ìš”ì†Œë¥¼ ì™„ì „íˆ ê°€ë¦¬ê¸° ìœ„í•´ ì¢Œí‘œê°’ ìˆ˜ì •
     nose[1].x -= (2 * nose[1].x - nose[3].x > 0) ? (nose[3].x - nose[1].x) / 2 : 0;
     nose[5].x += (2 * nose[5].x - nose[3].x < face.width()) ? (nose[5].x - nose[3].x) / 2 : 0;
 
-    for (int i = 36; i <= 41; i++) { // (»çÁø »ó) ¿ŞÂÊ ´«
+    for (int i = 36; i <= 41; i++) { // (ì‚¬ì§„ ìƒ) ì™¼ìª½ ëˆˆ
         Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
         left_eye.push_back(p);
     }
@@ -186,7 +187,7 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
     left_eye[2].y -= (2 * left_eye[2].y - left_eye[4].y > 0) ? left_eye[4].y - left_eye[2].y : 0;
     left_eye[4].y += (2 * left_eye[4].y - left_eye[2].y < face.height()) ? left_eye[4].y - left_eye[2].y : 0;
 
-    for (int i = 42; i <= 47; i++) { // (»çÁø »ó) ¿À¸¥ÂÊ ´«
+    for (int i = 42; i <= 47; i++) { // (ì‚¬ì§„ ìƒ) ì˜¤ë¥¸ìª½ ëˆˆ
         Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
         right_eye.push_back(p);
     }
@@ -197,7 +198,7 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
     right_eye[2].y -= (2 * right_eye[2].y - right_eye[4].y > 0) ? right_eye[4].y - right_eye[2].y : 0;
     right_eye[4].y += (2 * right_eye[4].y - right_eye[2].y < face.height()) ? right_eye[4].y - right_eye[2].y : 0;
 
-    for (int i = 48; i <= 59; i++) { // ÀÔ¼ú
+    for (int i = 48; i <= 59; i++) { // ì…ìˆ 
         Point p = Point(shape.part(i).x() - face.left(), shape.part(i).y() - face.top());
         lip.push_back(p);
     }
@@ -208,7 +209,7 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
     for (int i = 7; i <= 11; i++) lip[i].y += (lip[i].y + y_add < face.height()) ? y_add : 0;
 
 
-    // ¾ó±¼ÀÇ ´«½ç, ´«, ÄÚ, ÀÔÀ» °¡¸®´Â ¿µ»ó »ı¼º
+    // ì–¼êµ´ì˜ ëˆˆì¹, ëˆˆ, ì½”, ì…ì„ ê°€ë¦¬ëŠ” ì˜ìƒ ìƒì„±
     Mat skin_mask(Size(face.width(), face.height()), CV_8UC1, Scalar(255, 255, 255));
 
     fillPoly(skin_mask, left_eyebrows, Scalar(0, 0, 0));
@@ -218,7 +219,7 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
     fillPoly(skin_mask, right_eye, Scalar(0, 0, 0));
     fillPoly(skin_mask, lip, Scalar(0, 0, 0));
 
-    // Á¶±İ ´õ µÎ²¨¿î ¿Ü°û¼±À¸·Î ¾ó±¼ ¿ä¼Òµé ÁÖº¯ÀÇ ¸í¾ÏÀÌ Â£Àº ¿µ¿ª Ä¿¹ö
+    // ì¡°ê¸ˆ ë” ë‘êº¼ìš´ ì™¸ê³½ì„ ìœ¼ë¡œ ì–¼êµ´ ìš”ì†Œë“¤ ì£¼ë³€ì˜ ëª…ì•”ì´ ì§™ì€ ì˜ì—­ ì»¤ë²„
     polylines(skin_mask, left_eyebrows, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
     polylines(skin_mask, right_eyebrows, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
     polylines(skin_mask, nose, 1, Scalar(0, 0, 0), face.width() / 100 + 1);
@@ -232,10 +233,10 @@ Mat make_face_mask(dlib::input_rgb_image::input_type img, dlib::rectangle face) 
 Mat make_skin_mask(Mat img, Rect face) {
     Mat face_image, ycrcb_image, skin_mask;
 
-    // ¾ó±¼ ¿µ¿ª ¿µ»ó
+    // ì–¼êµ´ ì˜ì—­ ì˜ìƒ
     face_image = img(face);
 
-    // YCrCb »ö»ó Ã¼°è¿¡¼­ Cr°ú Cb°ªÀÇ ¹üÀ§¸¦ ÅëÇØ ÇÇºÎ ¿µ¿ª °ËÃâ
+    // YCrCb ìƒ‰ìƒ ì²´ê³„ì—ì„œ Crê³¼ Cbê°’ì˜ ë²”ìœ„ë¥¼ í†µí•´ í”¼ë¶€ ì˜ì—­ ê²€ì¶œ
     cvtColor(face_image, ycrcb_image, COLOR_BGR2YCrCb);
     inRange(ycrcb_image, Scalar(0, 133, 77), Scalar(255, 173, 127), skin_mask);
 
@@ -243,11 +244,11 @@ Mat make_skin_mask(Mat img, Rect face) {
 }
 
 Mat acne_detect(Mat skin_arg) {
-    // ÇÇºÎ ¿µ»óÀ» CIE L*a*b* »ö»ó Ã¼°è·Î º¯È¯ÇÏ¿© ¿©µå¸§ ¿µ¿ªÀ» °ËÃâ
-    // °ËÃâ ¾Ë°í¸®ÁòÀº ÇÏ´ÜÀÇ ³í¹®À» ÂüÁ¶
-    // ¹Ú±âÈ«, ³ëÈñ¼º, "CIE L*a*b* Ä®¶ó °ø°£ÀÇ ¼ººĞ ¿µ»ó a*À» ÀÌ¿ëÇÑ È¿°úÀûÀÎ ¿©µå¸§ °ËÃâ," µğÁöÅĞÄÜÅÙÃ÷ÇĞÈ¸³í¹®Áö 19, no. 7 (2018): 1397-1403, 10.9728/dcs.2018.19.7.1397
+    // í”¼ë¶€ ì˜ìƒì„ CIE L*a*b* ìƒ‰ìƒ ì²´ê³„ë¡œ ë³€í™˜í•˜ì—¬ ì—¬ë“œë¦„ ì˜ì—­ì„ ê²€ì¶œ
+    // ê²€ì¶œ ì•Œê³ ë¦¬ì¦˜ì€ í•˜ë‹¨ì˜ ë…¼ë¬¸ì„ ì°¸ì¡°
+    // ë°•ê¸°í™, ë…¸í¬ì„±, "CIE L*a*b* ì¹¼ë¼ ê³µê°„ì˜ ì„±ë¶„ ì˜ìƒ a*ì„ ì´ìš©í•œ íš¨ê³¼ì ì¸ ì—¬ë“œë¦„ ê²€ì¶œ," ë””ì§€í„¸ì½˜í…ì¸ í•™íšŒë…¼ë¬¸ì§€ 19, no. 7 (2018): 1397-1403, 10.9728/dcs.2018.19.7.1397
 
-    // ÇÇºÎ ¿µ»ó¿¡ Æ÷ÇÔµÈ ºûÀ» Á¦°ÅÇÏ±â À§ÇÑ ±¤ º¸»ó(light compensation) °úÁ¤
+    // í”¼ë¶€ ì˜ìƒì— í¬í•¨ëœ ë¹›ì„ ì œê±°í•˜ê¸° ìœ„í•œ ê´‘ ë³´ìƒ(light compensation) ê³¼ì •
     std::vector<int> b, g, r;
     Mat skin = skin_arg.clone();
 
@@ -284,9 +285,9 @@ Mat acne_detect(Mat skin_arg) {
             }
         }
     }
-    // skin ÀÎ½ºÅÏ½º¿¡ ±¤ º¸»ó ¿Ï·á
+    // skin ì¸ìŠ¤í„´ìŠ¤ì— ê´‘ ë³´ìƒ ì™„ë£Œ
 
-    // ÇØ´ç ¿µ»óÀ» CIE L*a*b* »ö»ó Ã¼°è·Î º¯È¯ ÈÄ, ¼ººĞ ¿µ»ó a*À» ÀÌ¿ëÇÏ¿© ¿©µå¸§ ÃßÁ¤
+    // í•´ë‹¹ ì˜ìƒì„ CIE L*a*b* ìƒ‰ìƒ ì²´ê³„ë¡œ ë³€í™˜ í›„, ì„±ë¶„ ì˜ìƒ a*ì„ ì´ìš©í•˜ì—¬ ì—¬ë“œë¦„ ì¶”ì •
     Mat skin_lab;
     cvtColor(skin, skin_lab, COLOR_BGR2Lab);
     std::vector<Mat> channels(3);
@@ -297,11 +298,11 @@ Mat acne_detect(Mat skin_arg) {
     max_a -= 128;
 
     Mat skin_ac(skin_lab.size(), CV_8UC1);
-    double threshold = 0.8; // ÀÓ°èÄ¡´Â ÀÓÀÇ·Î ¼³Á¤. ÇâÈÄ ÀÓ°è°ª °áÁ¤ ¾Ë°í¸®Áò µîÀ¸·Î °³¼± °¡´É
+    double threshold = 0.5; // ì„ê³„ì¹˜ëŠ” ì„ì˜ë¡œ ì„¤ì •. í–¥í›„ ì„ê³„ê°’ ê²°ì • ì•Œê³ ë¦¬ì¦˜ ë“±ìœ¼ë¡œ ê°œì„  ê°€ëŠ¥
     for (int i = 0; i < channels[1].rows; i++) {
         for (int j = 0; j < channels[1].cols; j++) {
             uchar pixel = channels[1].at<uchar>(i, j);
-            if (((double)pixel - 128) / max_a > 0.5) skin_ac.at<uchar>(i, j) = 255;
+            if (((double)pixel - 128) / max_a > threshold) skin_ac.at<uchar>(i, j) = 255;
             else skin_ac.at<uchar>(i, j) = 0;
         }
     }
